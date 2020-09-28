@@ -13,6 +13,7 @@ const Scrapper = require('@bogomolov.tech/scrapper');
 
 const scrapper = new Scrapper();
 
+// http and https are possible
 scrapper.setQuery(`https://example.com`);
 
 // or scrapper.setQuery(url, options);
@@ -30,6 +31,10 @@ scrapper.setExtractor(
 scrapper.setSaveCallback(extracted => {
     // e.g. save to db or file here
 });
+
+// by default it will follow redirects
+// disable it with:
+// scrapper.setFollowRedirects(false)
 
 await scrapper.extract();
 

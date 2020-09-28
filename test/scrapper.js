@@ -1,40 +1,80 @@
 const assert = require('assert').strict;
+const sinon = require('sinon');
 const Scrapper = require('../src/scrapper');
 
 describe('Get example.com', async () => {
-    let extractorInvoked = false;
-    let hasHtml = false;
-    let saveCallBackInvoked = false;
-    let extractedDataPassedToSave = false;
+    describe('HTTP', async () => {
+        it('should run all callbacks and have data', async () => {
+            const saveCallback = sinon.fake();
+            let extracted;
+            const scrapper = new Scrapper();
+            scrapper.setExtractor(response => {
+                extracted = response.match(/<h1>(.+)<\/h1>/)[1];
+                return extracted;
+            });
+            scrapper.setSaveCallback(saveCallback);
+            scrapper.setQuery(`http://example.com`);
 
-    const expectedExtracted = 'test data';
+            await scrapper.extract();
 
-    const scrapper = new Scrapper();
-
-    scrapper.setExtractor(
-        async response => {
-            extractorInvoked = true;
-            if (response.includes('<html>')) {
-                hasHtml = true;
-            }
-            return expectedExtracted;
-        }
-    );
-
-    scrapper.setSaveCallback(extracted => {
-        saveCallBackInvoked = true;
-        if (expectedExtracted === extracted) {
-            extractedDataPassedToSave = true;
-        }
+            assert.strictEqual(extracted, 'Example Domain');
+            assert(saveCallback.called);
+        });
     });
 
-    scrapper.setQuery(`https://example.com`);
+    describe('HTTPS', async () => {
+        it('should run all callbacks and have data', async () => {
+            const saveCallback = sinon.fake();
+            let extracted;
+            const scrapper = new Scrapper();
+            scrapper.setExtractor(response => {
+                extracted = response.match(/<h1>(.+)<\/h1>/)[1];
+                return extracted;
+            });
+            scrapper.setSaveCallback(saveCallback);
+            scrapper.setQuery(`https://example.com`);
 
-    it('should run all callbacks and have data', async () => {
+            await scrapper.extract();
+
+            assert.strictEqual(extracted, 'Example Domain');
+            assert(saveCallback.called);
+        });
+    });
+});
+
+describe('Redirect', async () => {
+    it('should return response from redirected page', async () => {
+        const saveCallback = sinon.fake();
+        let extracted;
+        const scrapper = new Scrapper();
+        scrapper.setExtractor(response => {
+            extracted = response.match(/<title>(.+)<\/title>/)[1];
+            return extracted;
+        });
+        scrapper.setSaveCallback(saveCallback);
+        scrapper.setQuery(`https://httpstat.us/301`);
+
         await scrapper.extract();
-        assert.ok(extractorInvoked);
-        assert.ok(hasHtml);
-        assert.ok(saveCallBackInvoked);
-        assert.ok(extractedDataPassedToSave);
+
+        assert.strictEqual(extracted, 'httpstat.us');
+        assert(saveCallback.called);
+    });
+
+    it('should not be redirected', async () => {
+        const saveCallback = sinon.fake();
+        let extracted;
+        const scrapper = new Scrapper();
+        scrapper.setExtractor(response => {
+            extracted = response;
+            return response;
+        });
+        scrapper.setSaveCallback(saveCallback);
+        scrapper.setQuery(`https://httpstat.us/301`);
+        scrapper.setFollowRedirects(false);
+
+        await scrapper.extract();
+
+        assert.strictEqual(extracted, '');
+        assert(saveCallback.called);
     });
 });

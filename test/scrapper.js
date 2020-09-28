@@ -60,6 +60,23 @@ describe('Redirect', async () => {
         assert(saveCallback.called);
     });
 
+    it('should fix url and return response from redirected page', async () => {
+        const saveCallback = sinon.fake();
+        let extracted;
+        const scrapper = new Scrapper();
+        scrapper.setExtractor(response => {
+            extracted = response.match(/<title>(.+)<\/title>/)[1];
+            return extracted;
+        });
+        scrapper.setSaveCallback(saveCallback);
+        scrapper.setQuery(`https://zen.yandex.ru/id/5d48264ef2df2500ae39b7f0`);
+
+        await scrapper.extract();
+
+        assert.strictEqual(extracted, 'СТС | Yandex Zen');
+        assert(saveCallback.called);
+    });
+
     it('should not be redirected', async () => {
         const saveCallback = sinon.fake();
         let extracted;

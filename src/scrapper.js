@@ -1,6 +1,6 @@
 const http = require('http');
 const https = require('https');
-const URL = require('url').URL;
+const urlModule = require('url');
 
 class Scrapper {
     constructor() {
@@ -30,7 +30,7 @@ class Scrapper {
     }
 
     setQuery(url, options = {}) {
-        this._url = new URL(url);
+        this._url = new urlModule.URL(url);
         this._options = options;
         if (this._url.protocol === 'https:') {
             this._transport = https;
@@ -45,7 +45,6 @@ class Scrapper {
         const response = await this._request(this._url, this._options);
         const extracted = await this._extractor(response);
         await this._saveCallback(extracted);
-        return;
     }
 
     _validateParams() {
@@ -72,7 +71,9 @@ class Scrapper {
                         return;
                     }
                     redirectCount++;
-                    return sendRequest(response.headers.location, options, callback);
+
+                    const newUrl = this._prepareRedirectUrl(response.headers.location);
+                    return sendRequest(newUrl, options, callback);
                 }
 
                 let data = '';
@@ -95,6 +96,18 @@ class Scrapper {
 
             sendRequest(url, options, callback);
         });
+    }
+
+    _prepareRedirectUrl(newLocation) {
+        const newUrl = urlModule.parse(newLocation);
+        if (!newUrl.protocol) {
+            newUrl.protocol = this._url.protocol;
+        }
+        if (!newUrl.hostname) {
+            newUrl.hostname = this._url.hostname;
+        }
+
+        return new URL(urlModule.format(newUrl));
     }
 }
 
